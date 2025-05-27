@@ -6,6 +6,23 @@ from ase.neighborlist import primitive_neighbor_list
 from ase.units import Bohr
 from pymatgen.core import Structure
 from torch import Tensor
+from matscipy.neighbours import neighbour_list
+
+
+def calc_neighbor_by_matscipy(
+    pos: Tensor, cell: Tensor, pbc: Tensor, cutoff: float
+) -> Tuple[Tensor, Tensor]:
+    idx_i, idx_j, S = neighbour_list(
+        quantities="ijS",
+        pbc=pbc.detach().cpu().numpy(),
+        cell=cell.detach().cpu().numpy(),
+        positions=pos.detach().cpu().numpy(),
+        cutoff=cutoff,
+    )
+    edge_index = torch.tensor(np.stack([idx_i, idx_j], axis=0), dtype=torch.int64, device=pos.device)
+    # convert int64 -> pos.dtype (float)
+    S = torch.tensor(S, dtype=pos.dtype, device=pos.device)
+    return edge_index, S
 
 
 def calc_neighbor_by_ase(
@@ -107,9 +124,9 @@ def calc_edge_index(
             S = torch.zeros_like(pos)
         else:
             try:
-                edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
+                edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)   #pymatgen
             except NotImplementedError:
                 # This is slower.
-                edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
+                edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)    #ase
 
     return edge_index, S

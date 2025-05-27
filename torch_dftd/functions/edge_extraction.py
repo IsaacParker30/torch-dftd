@@ -123,10 +123,6 @@ def calc_edge_index(
             edge_index = torch.zeros([2, 0], dtype=torch.long, device=pos.device)
             S = torch.zeros_like(pos)
         else:
-            try:
-                edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)   #pymatgen
-            except NotImplementedError:
-                # This is slower.
-                edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)    #ase
+            edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)    #ase
 
     return edge_index, S

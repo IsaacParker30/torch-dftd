@@ -49,6 +49,7 @@ class TorchDFTD3Calculator(Calculator):
         dtype: torch.dtype = torch.float32,
         bidirectional: bool = True,
         cutoff_smoothing: str = "none",
+        neighbor_list: Optional[str] = None,
         **kwargs,
     ):
         self.dft = dft
@@ -79,6 +80,7 @@ class TorchDFTD3Calculator(Calculator):
         self.dtype = dtype
         self.cutoff = cutoff
         self.bidirectional = bidirectional
+        self.neighbor_list = neighbor_list
         super(TorchDFTD3Calculator, self).__init__(atoms=atoms, **kwargs)
 
     def _calc_edge_index(
@@ -86,9 +88,10 @@ class TorchDFTD3Calculator(Calculator):
         pos: Tensor,
         cell: Optional[Tensor] = None,
         pbc: Optional[Tensor] = None,
+        neighbor_list: Optional[str] = None,
     ) -> Tuple[Tensor, Tensor]:
         return calc_edge_index(
-            pos, cell, pbc, cutoff=self.cutoff, bidirectional=self.bidirectional
+            pos, cell, pbc, cutoff=self.cutoff, bidirectional=self.bidirectional, neighbor_list=neighbor_list
         )
 
     def _preprocess_atoms(self, atoms: Atoms) -> Dict[str, Optional[Tensor]]:
@@ -101,7 +104,7 @@ class TorchDFTD3Calculator(Calculator):
         else:
             cell = None
         pbc = torch.tensor(atoms.pbc, device=self.device)
-        edge_index, S = self._calc_edge_index(pos, cell, pbc)
+        edge_index, S = self._calc_edge_index(pos, cell, pbc, neighbor_list=self.neighbor_list)
         if cell is None:
             shift_pos = S
         else:

@@ -7,6 +7,23 @@ from ase.units import Bohr
 from pymatgen.core import Structure
 from torch import Tensor
 from matscipy.neighbours import neighbour_list
+from nvalchemiops.neighborlist import neighbor_list
+
+
+
+def calc_neighbor_by_alchemi(
+    pos: Tensor, cell: Tensor, pbc: Tensor, cutoff: float
+) -> Tuple[Tensor, Tensor]:
+    edge_index, _, S = neighbor_list(
+    positions=pos,
+    cutoff=cutoff,
+    cell=cell,
+    pbc=pbc,
+    return_neighbor_list=True,
+    #method="cell_list",
+    )
+    S = torch.tensor(S, dtype=pos.dtype, device=pos.device)
+    return edge_index, S
 
 
 def calc_neighbor_by_matscipy(
@@ -87,6 +104,7 @@ def calc_edge_index(
     pbc: Optional[Tensor] = None,
     cutoff: float = 95.0 * Bohr,
     bidirectional: bool = False,
+    neighbor_list: str = None,
 ) -> Tuple[Tensor, Tensor]:
     """Calculate atom pair as `edge_index`, and shift vector `S`.
 
@@ -101,7 +119,18 @@ def calc_edge_index(
         edge_index (Tensor): (2, n_edges)
         S (Tensor): (n_edges, 3) dtype is same with `pos`
     """
-    if pbc is None or torch.all(~pbc):
+    #if device is cuda use alchemi
+    if neighbor_list == "pymatgen":
+        edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
+    elif neighbor_list == "ase":
+        edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
+    elif neighbor_list == "matscipy":
+        edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)
+    elif neighbor_list == "alchemi":
+        edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
+    elif torch.cuda.is_available() and pos.is_cuda:
+        edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
+    elif pbc is None or torch.all(~pbc):
         assert cell is None
         # Calculate distance brute force way
         distances = torch.sum((pos.unsqueeze(0) - pos.unsqueeze(1)).pow_(2), dim=2)

@@ -120,14 +120,13 @@ def calc_edge_index(
         S (Tensor): (n_edges, 3) dtype is same with `pos`
     """
     #if device is cuda use alchemi
-    if neighbor_list == "pymatgen":
-        edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
-    elif neighbor_list == "ase":
-        edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
-    elif neighbor_list == "matscipy":
-        edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)
-    elif neighbor_list == "alchemi":
-        edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
+    nl_dict={'pymatgen':calc_neighbor_by_pymatgen,
+             'ase':calc_neighbor_by_ase,
+             'matscipy':calc_neighbor_by_matscipy,
+             'alchemi':calc_neighbor_by_alchemi
+             }
+    if neighbor_list in nl_dict:
+        edge_index, S = nl_dict[neighbor_list](pos, cell, pbc, cutoff)
     elif torch.cuda.is_available() and pos.is_cuda:
         edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
     elif pbc is None or torch.all(~pbc):

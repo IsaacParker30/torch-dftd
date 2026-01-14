@@ -28,6 +28,8 @@ class TorchDFTD3Calculator(Calculator):
         dtype (dtype): internal calculation is done in this precision.
         bidirectional (bool): calculated `edge_index` is bidirectional or not.
         cutoff_smoothing (str): cutoff smoothing makes gradient smooth at `cutoff` distance
+        neighbor_list (str or None): neighbor list calculation method. Options are "pymatgen", "ase", "matscipy", "alchemi".
+            If None, "alchemi" is used when device is cuda, otherwise defaults to matscipy.
         **kwargs:
     """
 

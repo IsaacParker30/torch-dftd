@@ -125,11 +125,7 @@ def calc_edge_index(
              'matscipy':calc_neighbor_by_matscipy,
              'alchemi':calc_neighbor_by_alchemi
              }
-    if neighbor_list in nl_dict:
-        edge_index, S = nl_dict[neighbor_list](pos, cell, pbc, cutoff)
-    elif torch.cuda.is_available() and pos.is_cuda:
-        edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
-    elif pbc is None or torch.all(~pbc):
+    if pbc is None or torch.all(~pbc):
         assert cell is None
         # Calculate distance brute force way
         distances = torch.sum((pos.unsqueeze(0) - pos.unsqueeze(1)).pow_(2), dim=2)
@@ -151,6 +147,11 @@ def calc_edge_index(
             edge_index = torch.zeros([2, 0], dtype=torch.long, device=pos.device)
             S = torch.zeros_like(pos)
         else:
-            edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)    #ase
+            if neighbor_list in nl_dict:
+                edge_index, S = nl_dict[neighbor_list](pos, cell, pbc, cutoff)
+            elif torch.cuda.is_available() and pos.is_cuda:
+                edge_index, S = calc_neighbor_by_alchemi(pos, cell, pbc, cutoff)
+            else:
+                edge_index, S = calc_neighbor_by_matscipy(pos, cell, pbc, cutoff)    #ase
 
     return edge_index, S
